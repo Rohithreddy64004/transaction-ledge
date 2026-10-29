@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: transaction-ledger-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URL
+        sync: false
+      - key: MONGODB_DATABASE
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: CURRENCY
+        value: INR
