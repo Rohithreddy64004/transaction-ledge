@@ -14,6 +14,14 @@ from app.schemas import AccountBalance, AccountCreate, AccountRead, TransactionC
 from app.services import create_account, create_transaction, create_transfer, db_decimal, get_account_or_404, get_transaction_history, list_accounts, normalize_transaction_type
 
 
+REQUIRED_FRONTEND_ORIGINS = {
+    "https://ledgerly-transaction.web.app",
+    "https://ledgerly-transaction.firebaseapp.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+}
+
+
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     async for _ in lifespan(app):
@@ -23,12 +31,17 @@ async def app_lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="Transaction Ledger API", version="1.0.0", lifespan=app_lifespan)
     settings = get_settings()
+    configured_origins = {
+        origin.strip()
+        for origin in settings.frontend_origins.split(",")
+        if origin.strip()
+    }
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[origin.strip() for origin in settings.frontend_origins.split(",") if origin.strip()],
+        allow_origins=sorted(REQUIRED_FRONTEND_ORIGINS | configured_origins),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
     )
     app.add_exception_handler(LedgerError, ledger_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)

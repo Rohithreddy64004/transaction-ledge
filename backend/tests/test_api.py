@@ -12,3 +12,28 @@ def test_smoke(client):
     })
     assert credit.status_code == 201
     assert client.get(f"/api/accounts/{account['id']}/balance").json()["balance"] == "100.00"
+
+
+def test_cors_preflight_allows_firebase_frontend(client):
+    response = client.options(
+        "/api/accounts/",
+        headers={
+            "Origin": "https://ledgerly-transaction.web.app",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type,x-requested-with",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://ledgerly-transaction.web.app"
+    assert "POST" in response.headers["access-control-allow-methods"]
+
+
+def test_cors_does_not_grant_unapproved_origin(client):
+    response = client.get(
+        "/api/accounts/",
+        headers={"Origin": "https://unapproved.example.com"},
+    )
+
+    assert response.status_code == 200
+    assert "access-control-allow-origin" not in response.headers
